@@ -6,66 +6,74 @@
     <title>CNC Macro B G20 Gen</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #1a1a1a; color: #eee; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #1a1a1a; color: #eee; line-height: 1.4; }
         .block { background: #2d2d2d; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #007bff; }
-        h2, h3 { margin-top: 0; color: #007bff; }
-        input, select { background: #444; color: #fff; border: 1px solid #555; padding: 8px; margin: 5px 0; border-radius: 4px; width: 100px; }
-        label { display: inline-block; width: 120px; font-size: 0.9em; }
-        textarea { width: 100%; height: 300px; font-family: 'Courier New', monospace; background: #000; color: #00ff00; padding: 10px; border-radius: 5px; margin-top: 10px; }
-        button { background: #28a745; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+        h2, h3 { margin-top: 0; color: #007bff; text-transform: uppercase; letter-spacing: 1px; }
+        .grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        input, select { background: #444; color: #fff; border: 1px solid #555; padding: 8px; margin: 5px 0; border-radius: 4px; width: 90%; }
+        label { display: block; font-size: 0.8em; color: #aaa; margin-top: 5px; }
+        textarea { width: 100%; height: 300px; font-family: 'Courier New', monospace; background: #000; color: #00ff00; padding: 10px; border-radius: 5px; margin-top: 10px; border: 1px solid #333; }
+        button { background: #28a745; color: white; padding: 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; font-size: 1rem; }
         button:hover { background: #218838; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .section-title { background: #3d3d3d; padding: 5px 10px; border-radius: 4px; margin-bottom: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <h2>Fanuc Macro B Generator (G20)</h2>
+    <h2>Fanuc Macro B (G20)</h2>
     
     <div class="block">
-        <h3>Global Settings</h3>
-        <div class="grid">
-            <div><label>Tool #:</label><input type="number" id="tool" value="1"></div>
-            <div><label>RPM:</label><input type="number" id="speed" value="2500"></div>
-            <div><label>Feedrate:</label><input type="number" id="feed" value="12.0"></div>
-            <div><label>Z-Safe:</label><input type="number" id="zSafe" value="1.0"></div>
-            <div><label>Retract (R):</label><input type="number" id="retract" value="0.1"></div>
-            <div><label>Coolant:</label><select id="coolant"><option value="M8">M8 (ON)</option><option value="M9">M9 (OFF)</option></select></div>
+        <h3>1. Global Tool Data</h3>
+        <div class="grid-inputs">
+            <div><label>Tool # (T)</label><input type="number" id="tool" value="1"></div>
+            <div><label>Spindle (S)</label><input type="number" id="speed" value="2500"></div>
+            <div><label>Feedrate (F)</label><input type="number" id="feed" value="12.0"></div>
+            <div><label>Coolant</label><select id="coolant"><option value="M8">M8 ON</option><option value="M9">M9 OFF</option></select></div>
+            <div><label>Z Safe (Clear)</label><input type="number" id="zSafe" value="1.0"></div>
+            <div><label>Retract (R)</label><input type="number" id="retract" value="0.1"></div>
         </div>
     </div>
 
     <div class="block">
-        <h3>Linear Hole Pattern</h3>
-        <label>Axis:</label><select id="linAxis"><option value="X">X-Axis</option><option value="Y">Y-Axis</option></select><br>
-        <label>Start X:</label><input type="number" id="linX" value="0"><br>
-        <label>Start Y:</label><input type="number" id="linY" value="0"><br>
-        <label>Z-Depth:</label><input type="number" id="linDepth" value="0.5"><br>
-        <label>Qty of Holes:</label><input type="number" id="linQty" value="5"><br>
-        <label>Spacing:</label><input type="number" id="linSpace" value="1.0">
-        <button onclick="generate('linear')">Generate Linear Pattern</button>
+        <h3>2. Hole Grid (X & Y)</h3>
+        <div class="grid-inputs">
+            <div><label>Start X</label><input type="number" id="linX" value="0"></div>
+            <div><label>Start Y</label><input type="number" id="linY" value="0"></div>
+            <div><label>X Qty</label><input type="number" id="qtyX" value="5"></div>
+            <div><label>Y Qty</label><input type="number" id="qtyY" value="5"></div>
+            <div><label>X Spacing</label><input type="number" id="spaceX" value="1.0"></div>
+            <div><label>Y Spacing</label><input type="number" id="spaceY" value="1.0"></div>
+            <div><label>Total Depth (Z)</label><input type="number" id="linDepth" value="0.5"></div>
+        </div>
+        <button onclick="generate('grid')">Generate Grid G-Code</button>
     </div>
 
     <div class="block">
-        <h3>Circle Pocket / Mill</h3>
-        <label>Finish Dia:</label><input type="number" id="pockDia" value="2.0"><br>
-        <label>Total Depth:</label><input type="number" id="pockZ" value="0.75"><br>
-        <label>Depth/Pass:</label><input type="number" id="pockDOC" value="0.1"><br>
-        <label>Radial Cut:</label><input type="number" id="pockRadial" value="0.05">
+        <h3>3. Circle Pocket / Mill</h3>
+        <div class="grid-inputs">
+            <div><label>Finish Dia</label><input type="number" id="pockDia" value="2.0"></div>
+            <div><label>Total Depth</label><input type="number" id="pockZ" value="0.75"></div>
+            <div><label>Depth/Pass (DOC)</label><input type="number" id="pockDOC" value="0.1"></div>
+            <div><label>Radial Step (WOC)</label><input type="number" id="pockRadial" value="0.05"></div>
+        </div>
         <button onclick="generate('pocket')">Generate Pocket</button>
     </div>
 
     <div class="block">
-        <h3>Facing Operation</h3>
-        <label>Length (X):</label><input type="number" id="faceX" value="5.0"><br>
-        <label>Width (Y):</label><input type="number" id="faceY" value="3.0"><br>
-        <label>Stepover:</label><input type="number" id="faceStep" value="1.5">
-        <button onclick="generate('facing')">Generate Face Program</button>
+        <h3>4. Face Program</h3>
+        <div class="grid-inputs">
+            <div><label>Length (X)</label><input type="number" id="faceX" value="5.0"></div>
+            <div><label>Width (Y)</label><input type="number" id="faceY" value="3.0"></div>
+            <div><label>Stepover</label><input type="number" id="faceStep" value="1.5"></div>
+        </div>
+        <button onclick="generate('facing')">Generate Face</button>
     </div>
 
-    <textarea id="output" readonly placeholder="G-Code will appear here..."></textarea>
+    <textarea id="output" readonly placeholder="Macro B G-Code Output..."></textarea>
 
     <script>
         function generate(mode) {
-            // Get Globals
+            // Get Shared Globals
             const T = document.getElementById('tool').value;
             const S = document.getElementById('speed').value;
             const F = document.getElementById('feed').value;
@@ -80,24 +88,25 @@
             g += `G54 G0 X0 Y0\n`;
             g += `G43 H${T} Z${ZS} ${M}\n\n`;
 
-            if (mode === 'linear') {
-                let axis = document.getElementById('linAxis').value;
-                let q = document.getElementById('linQty').value;
-                let sp = document.getElementById('linSpace').value;
+            if (mode === 'grid') {
+                let qX = document.getElementById('qtyX').value;
+                let qY = document.getElementById('qtyY').value;
+                let sX = document.getElementById('spaceX').value;
+                let sY = document.getElementById('spaceY').value;
                 let z = document.getElementById('linDepth').value;
-                let x = parseFloat(document.getElementById('linX').value);
-                let y = parseFloat(document.getElementById('linY').value);
+                let stX = document.getElementById('linX').value;
+                let stY = document.getElementById('linY').value;
 
-                g += `(LINEAR HOLES ALONG ${axis})\n`;
-                g += `#100 = ${x} (START X)\n`;
-                g += `#101 = ${y} (START Y)\n`;
-                g += `#102 = 0 (COUNTER)\n\n`;
-                g += `WHILE [#102 LT ${q}] DO 1\n`;
-                if(axis === 'X') {
-                    g += `  G81 G99 X[#100 + [#102 * ${sp}]] Y#101 Z-${z} R${R} F${F}\n`;
-                } else {
-                    g += `  G81 G99 X#100 Y[#101 + [#102 * ${sp}]] Z-${z} R${R} F${F}\n`;
-                }
+                g += `(GRID HOLE PATTERN: ${qX}X BY ${qY}Y)\n`;
+                g += `#100 = ${stX} (START X)\n`;
+                g += `#101 = ${stY} (START Y)\n`;
+                g += `#102 = 0 (Y COUNTER)\n\n`;
+                g += `WHILE [#102 LT ${qY}] DO 1\n`;
+                g += `  #103 = 0 (X COUNTER)\n`;
+                g += `  WHILE [#103 LT ${qX}] DO 2\n`;
+                g += `    G81 G99 X[#100+[#103*${sX}]] Y[#101+[#102*${sY}]] Z-${z} R${R} F${F}\n`;
+                g += `    #103 = #103 + 1\n`;
+                g += `  END 2\n`;
                 g += `  #102 = #102 + 1\n`;
                 g += `END 1\nG80\n`;
 
@@ -105,10 +114,9 @@
                 let dia = document.getElementById('pockDia').value;
                 let zFin = document.getElementById('pockZ').value;
                 let doc = document.getElementById('pockDOC').value;
-                let rad = document.getElementById('pockRadial').value;
-
+                
                 g += `(CIRCLE MILL POCKET)\n`;
-                g += `#1 = ${dia} (DIA)\n`;
+                g += `#1 = [${dia}/2] (RADIUS)\n`;
                 g += `#2 = ${doc} (DOC)\n`;
                 g += `#3 = ${zFin} (TOTAL DEPTH)\n`;
                 g += `#4 = 0 (CURRENT Z)\n\n`;
@@ -116,7 +124,7 @@
                 g += `  #4 = [#4 - #2]\n`;
                 g += `  IF [#4 LT -#3] THEN #4 = -#3\n`;
                 g += `  G1 Z#4 F${F}\n`;
-                g += `  G2 I[#1/2] F${F}\n`;
+                g += `  G2 I#1 F${F}\n`;
                 g += `END 1\n`;
 
             } else if (mode === 'facing') {
@@ -133,7 +141,7 @@
                 g += `END 1\n`;
             }
 
-            // Fixed Footer per Request
+            // Fixed Footer
             g += `\nG0 Z${ZS} ${M === 'M8' ? 'M9' : ''}\n`;
             g += `M5\n`;
             g += `G0 G90 G58 X0 Y0\n`;
