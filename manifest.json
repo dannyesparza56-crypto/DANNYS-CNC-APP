@@ -1,13 +1,13 @@
 {
   "name": "CNC Macro Gen",
-  "short_name": "CNCGen",
-  "start_url": "index.html",
+  "short_name": "MacroGen",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#007bff",
+  "background_color": "#121212",
+  "theme_color": "#28a745",
   "icons": [
     {
-      "src": "https://via.placeholder.com/192",
+      "src": "https://via.placeholder.com/192/28a745/ffffff?text=CNC",
       "sizes": "192x192",
       "type": "image/png"
     }
