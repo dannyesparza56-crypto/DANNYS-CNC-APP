@@ -3,24 +3,33 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CNC Macro B Builder</title>
+    <title>CNC Macro Builder</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="https://via.placeholder.com/180/28a745/ffffff?text=CNC">
+    <meta name="theme-color" content="#28a745">
     <style>
         body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #121212; color: #e0e0e0; }
-        .block { background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #28a745; }
-        h2, h3 { margin-top: 0; color: #28a745; }
+        .block { background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #28a745; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        h2, h3 { margin-top: 0; color: #28a745; text-transform: uppercase; }
         .grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        input, select { background: #333; color: #fff; border: 1px solid #444; padding: 10px; margin: 5px 0; border-radius: 4px; width: 90%; }
-        label { display: block; font-size: 0.75rem; color: #888; }
-        textarea { width: 100%; height: 350px; font-family: 'Courier New', monospace; background: #000; color: #00ff00; padding: 10px; border-radius: 5px; margin-top: 10px; }
-        .btn-add { background: #007bff; color: white; padding: 12px; border: none; border-radius: 5px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        .btn-generate { background: #28a745; color: white; padding: 15px; border: none; border-radius: 5px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 20px; }
-        .btn-download { background: #dc3545; color: white; padding: 12px; border: none; border-radius: 5px; width: 100%; cursor: pointer; margin-top: 10px; }
-        #opList { background: #252525; padding: 10px; border-radius: 5px; margin-top: 10px; border: 1px dashed #555; }
+        input, select { background: #333; color: #fff; border: 1px solid #444; padding: 12px; margin: 5px 0; border-radius: 4px; width: 90%; font-size: 1rem; }
+        label { display: block; font-size: 0.75rem; color: #888; margin-top: 5px; }
+        textarea { width: 100%; height: 300px; font-family: 'Courier New', monospace; background: #000; color: #00ff00; padding: 10px; border-radius: 5px; margin-top: 10px; border: 1px solid #333; }
+        .btn-add { background: #007bff; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn-generate { background: #28a745; color: white; padding: 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; font-size: 1.1rem; }
+        .btn-download { background: #dc3545; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; width: 100%; }
+        #opList { background: #252525; padding: 10px; border-radius: 5px; margin-top: 10px; font-size: 0.9rem; border: 1px dashed #444; }
     </style>
 </head>
 <body>
 
-    <h2>Macro B Master Builder (G20)</h2>
+    <h2>Macro Builder (G20)</h2>
+
+    <div class="block" style="border-left-color: #ffc107;">
+        <h3>0. File Info</h3>
+        <label>Program Name / Part Number</label>
+        <input type="text" id="progName" placeholder="e.g. PART_1234" style="width: 95%;">
+    </div>
     
     <div class="block">
         <h3>1. Tooling & Globals</h3>
@@ -62,7 +71,7 @@
             <div><label>Depth/Pass (DOC)</label><input type="number" id="pockDOC" value="0.1"></div>
         </div>
 
-        <button class="btn-add" onclick="addOperation()">+ Add to Program Queue</button>
+        <button class="btn-add" onclick="addOperation()">+ Add to Queue</button>
     </div>
 
     <div id="opList"><strong>Queue:</strong> (Empty)</div>
@@ -72,6 +81,7 @@
     <textarea id="output" readonly></textarea>
     
     <button class="btn-download" onclick="downloadNC()">Download .NC File</button>
+    <button style="background:#444; color:white; border:none; padding:10px; width:100%; margin-top:5px; border-radius:5px;" onclick="location.reload()">Clear All</button>
 
     <script>
         let programQueue = [];
@@ -112,16 +122,12 @@
             }
 
             programQueue.push(opData);
-            updateList();
-        }
-
-        function updateList() {
-            const list = document.getElementById('opList');
-            list.innerHTML = "<strong>Queue:</strong> " + programQueue.map((op, i) => `<br>${i+1}. T${op.tool} ${op.type}`).join('');
+            document.getElementById('opList').innerHTML = "<strong>Queue:</strong> " + programQueue.map((op, i) => `<br>${i+1}. T${op.tool} ${op.type}`).join('');
         }
 
         function buildFullProgram() {
-            let g = `%\nO1001 (MASTER MACRO B)\nG20 G90 G17 G40\n\n`;
+            let name = document.getElementById('progName').value || "O1001";
+            let g = `%\nO1001 (${name.toUpperCase()})\n(G20 INCH SYSTEM)\n(GENERATED ON MOBILE)\n\n`;
 
             programQueue.forEach((op, index) => {
                 g += `(--- OP ${index + 1}: ${op.type.toUpperCase()} ---)\n`;
@@ -131,48 +137,14 @@
                 g += `G43 H${op.tool} Z${op.zSafe} ${op.coolant}\n\n`;
 
                 if(op.type === 'facing') {
-                    g += `(VARIABLES)\n`;
-                    g += `#501 = ${op.x} (LENGTH X)\n`;
-                    g += `#502 = ${op.y} (WIDTH Y)\n`;
-                    g += `#503 = ${op.step} (STEPOVER)\n`;
-                    g += `#504 = 0 (Y COUNTER)\n\n`;
-                    g += `WHILE [#504 LE #502] DO 1\n`;
-                    g += `  G0 X-1.0 Y#504\n`;
-                    g += `  G1 X[#501+1.0] F${op.feed}\n`;
-                    g += `  #504 = [#504 + #503]\n`;
-                    g += `END 1\n`;
+                    g += `(VARIABLES)\n#501=${op.x} (X LEN)\n#502=${op.y} (Y WID)\n#503=${op.step} (STEP)\n#504=0 (Y POS)\n\nWHILE [#504 LE #502] DO 1\n G0 X-1.0 Y#504\n G1 X[#501+1.0] F${op.feed}\n #504=[#504+#503]\nEND 1\n`;
                 } else if(op.type === 'grid') {
-                    g += `(VARIABLES)\n`;
-                    g += `#510 = ${op.qx} (QTY X)\n`;
-                    g += `#511 = ${op.qy} (QTY Y)\n`;
-                    g += `#512 = ${op.sx} (SPACE X)\n`;
-                    g += `#513 = ${op.sy} (SPACE Y)\n`;
-                    g += `#514 = ${op.z} (DEPTH)\n`;
-                    g += `#100 = 0 (Y COUNTER)\n\n`;
-                    g += `WHILE [#100 LT #511] DO 1\n`;
-                    g += `  #101 = 0 (X COUNTER)\n`;
-                    g += `  WHILE [#101 LT #510] DO 2\n`;
-                    g += `    G81 G99 X[#101 * #512] Y[#100 * #513] Z-#514 R${op.retract} F${op.feed}\n`;
-                    g += `    #101 = #101 + 1\n`;
-                    g += `  END 2\n`;
-                    g += `  #100 = #100 + 1\n`;
-                    g += `END 1\nG80\n`;
+                    g += `(VARIABLES)\n#510=${op.qx} (QTY X)\n#511=${op.qy} (QTY Y)\n#512=${op.sx} (SPACE X)\n#513=${op.sy} (SPACE Y)\n#514=${op.z} (DEPTH)\n#100=0 (Y CTR)\n\nWHILE [#100 LT #511] DO 1\n #101=0 (X CTR)\n WHILE [#101 LT #510] DO 2\n  G81 G99 X[#101*#512] Y[#100*#513] Z-#514 R${op.retract} F${op.feed}\n  #101=#101+1\n END 2\n #100=#100+1\nEND 1\nG80\n`;
                 } else if(op.type === 'pocket') {
-                    g += `(VARIABLES)\n`;
-                    g += `#520 = [${op.dia}/2] (RADIUS)\n`;
-                    g += `#521 = ${op.z} (TOTAL DEPTH)\n`;
-                    g += `#522 = ${op.doc} (DOC)\n`;
-                    g += `#523 = 0 (CURRENT Z)\n\n`;
-                    g += `WHILE [#523 GT -#521] DO 1\n`;
-                    g += `  #523 = [#523 - #522]\n`;
-                    g += `  IF [#523 LT -#521] THEN #523 = -#521\n`;
-                    g += `  G1 Z#523 F${op.feed}\n`;
-                    g += `  G2 I#520 F${op.feed}\n`;
-                    g += `END 1\n`;
+                    g += `(VARIABLES)\n#520=[${op.dia}/2] (RAD)\n#521=${op.z} (DEP)\n#522=${op.doc} (DOC)\n#523=0 (Z CTR)\n\nWHILE [#523 GT -#521] DO 1\n #523=[#523-#522]\n IF [#523 LT -#521] THEN #523=-#521\n G1 Z#523 F${op.feed}\n G2 I#520 F${op.feed}\nEND 1\n`;
                 }
 
-                g += `G0 Z${op.zSafe} M9\n`;
-                g += `M5\n\n`;
+                g += `G0 Z${op.zSafe} M9\nM5\n\n`;
             });
 
             g += `G0 G90 G58 X0 Y0\nM30\n%`;
@@ -181,12 +153,17 @@
 
         function downloadNC() {
             const text = document.getElementById('output').value;
+            const name = document.getElementById('progName').value || "PROGRAM";
             if(!text) return alert("Generate code first!");
             const blob = new Blob([text], { type: 'text/plain' });
             const anchor = document.createElement('a');
-            anchor.download = "MACRO_PROG.NC";
+            anchor.download = `${name.replace(/\s+/g, '_').toUpperCase()}.NC`;
             anchor.href = window.URL.createObjectURL(blob);
             anchor.click();
+        }
+
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
         }
     </script>
 </body>
