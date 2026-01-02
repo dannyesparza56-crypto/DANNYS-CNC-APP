@@ -4,19 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CNC Macro B Builder</title>
-    <link rel="manifest" href="manifest.json">
     <style>
         body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #121212; color: #e0e0e0; }
-        .block { background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #28a745; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
-        h2, h3 { margin-top: 0; color: #28a745; text-transform: uppercase; }
+        .block { background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #28a745; }
+        h2, h3 { margin-top: 0; color: #28a745; }
         .grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        input, select { background: #333; color: #fff; border: 1px solid #444; padding: 10px; margin: 5px 0; border-radius: 4px; width: 90%; font-size: 1rem; }
-        label { display: block; font-size: 0.75rem; color: #888; margin-top: 5px; }
-        textarea { width: 100%; height: 250px; font-family: 'Courier New', monospace; background: #000; color: #00ff00; padding: 10px; border-radius: 5px; margin-top: 10px; border: 1px solid #333; }
-        .btn-add { background: #007bff; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
-        .btn-generate { background: #28a745; color: white; padding: 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; font-size: 1.1rem; }
-        .btn-download { background: #dc3545; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; width: 100%; }
-        .op-list { background: #252525; padding: 10px; border-radius: 5px; margin-top: 10px; border: 1px dashed #555; }
+        input, select { background: #333; color: #fff; border: 1px solid #444; padding: 10px; margin: 5px 0; border-radius: 4px; width: 90%; }
+        label { display: block; font-size: 0.75rem; color: #888; }
+        textarea { width: 100%; height: 350px; font-family: 'Courier New', monospace; background: #000; color: #00ff00; padding: 10px; border-radius: 5px; margin-top: 10px; }
+        .btn-add { background: #007bff; color: white; padding: 12px; border: none; border-radius: 5px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .btn-generate { background: #28a745; color: white; padding: 15px; border: none; border-radius: 5px; width: 100%; cursor: pointer; font-weight: bold; margin-top: 20px; }
+        .btn-download { background: #dc3545; color: white; padding: 12px; border: none; border-radius: 5px; width: 100%; cursor: pointer; margin-top: 10px; }
+        #opList { background: #252525; padding: 10px; border-radius: 5px; margin-top: 10px; border: 1px dashed #555; }
     </style>
 </head>
 <body>
@@ -46,36 +45,33 @@
         <div id="facingInputs" class="grid-inputs">
             <div><label>Length (X)</label><input type="number" id="faceX" value="5.0"></div>
             <div><label>Width (Y)</label><input type="number" id="faceY" value="3.0"></div>
-            <div><label>Stepover</label><input type="number" id="faceStep" value="1.5"></div>
+            <div><label>Stepover</label><input type="number" id="faceStep" value="0.25"></div>
         </div>
 
         <div id="gridInputs" class="grid-inputs" style="display:none;">
             <div><label>X Qty</label><input type="number" id="qtyX" value="5"></div>
             <div><label>Y Qty</label><input type="number" id="qtyY" value="5"></div>
-            <div><label>X Space</label><input type="number" id="spaceX" value="1.0"></div>
-            <div><label>Y Space</label><input type="number" id="spaceY" value="1.0"></div>
+            <div><label>X Space</label><input type="number" id="spaceX" value="0.25"></div>
+            <div><label>Y Space</label><input type="number" id="spaceY" value="0.25"></div>
             <div><label>Z Depth</label><input type="number" id="linDepth" value="0.5"></div>
         </div>
 
         <div id="pocketInputs" class="grid-inputs" style="display:none;">
-            <div><label>Finish Dia</label><input type="number" id="pockDia" value="2.0"></div>
-            <div><label>Total Z</label><input type="number" id="pockZ" value="0.5"></div>
-            <div><label>DOC</label><input type="number" id="pockDOC" value="0.1"></div>
+            <div><label>Finish Dia</label><input type="number" id="pockDia" value="3.0"></div>
+            <div><label>Total Depth</label><input type="number" id="pockZ" value="0.5"></div>
+            <div><label>Depth/Pass (DOC)</label><input type="number" id="pockDOC" value="0.1"></div>
         </div>
 
         <button class="btn-add" onclick="addOperation()">+ Add to Program Queue</button>
     </div>
 
-    <div class="op-list" id="opList">
-        <strong>Queue:</strong> (Empty)
-    </div>
+    <div id="opList"><strong>Queue:</strong> (Empty)</div>
 
     <button class="btn-generate" onclick="buildFullProgram()">Generate Full Program</button>
     
     <textarea id="output" readonly></textarea>
     
     <button class="btn-download" onclick="downloadNC()">Download .NC File</button>
-    <button style="background:#666; color:white; border:none; padding:10px; width:100%; margin-top:5px; border-radius:5px;" onclick="location.reload()">Clear All</button>
 
     <script>
         let programQueue = [];
@@ -125,21 +121,54 @@
         }
 
         function buildFullProgram() {
-            let g = `%\nO1001 (MASTER BUILDER)\nG20 G90 G17 G40\n\n`;
+            let g = `%\nO1001 (MASTER MACRO B)\nG20 G90 G17 G40\n\n`;
 
             programQueue.forEach((op, index) => {
-                g += `(OP ${index + 1}: ${op.type.toUpperCase()})\n`;
+                g += `(--- OP ${index + 1}: ${op.type.toUpperCase()} ---)\n`;
                 g += `T${op.tool} M6\n`;
                 g += `S${op.speed} M3\n`;
                 g += `G54 G0 X0 Y0\n`;
-                g += `G43 H${op.tool} Z${op.zSafe} ${op.coolant}\n`;
+                g += `G43 H${op.tool} Z${op.zSafe} ${op.coolant}\n\n`;
 
                 if(op.type === 'facing') {
-                    g += `#1 = 0\nWHILE [#1 LE ${op.y}] DO 1\n G0 X-1.0 Y#1\n G1 X[${op.x}+1.0] F${op.feed}\n #1=[#1+${op.step}]\nEND 1\n`;
+                    g += `(VARIABLES)\n`;
+                    g += `#501 = ${op.x} (LENGTH X)\n`;
+                    g += `#502 = ${op.y} (WIDTH Y)\n`;
+                    g += `#503 = ${op.step} (STEPOVER)\n`;
+                    g += `#504 = 0 (Y COUNTER)\n\n`;
+                    g += `WHILE [#504 LE #502] DO 1\n`;
+                    g += `  G0 X-1.0 Y#504\n`;
+                    g += `  G1 X[#501+1.0] F${op.feed}\n`;
+                    g += `  #504 = [#504 + #503]\n`;
+                    g += `END 1\n`;
                 } else if(op.type === 'grid') {
-                    g += `#100=0 (Y COUNTER)\nWHILE [#100 LT ${op.qy}] DO 1\n #101=0 (X COUNTER)\n WHILE [#101 LT ${op.qx}] DO 2\n  G81 G99 X[#101*${op.sx}] Y[#100*${op.sy}] Z-${op.z} R${op.retract} F${op.feed}\n  #101=#101+1\n END 2\n #100=#100+1\nEND 1\nG80\n`;
+                    g += `(VARIABLES)\n`;
+                    g += `#510 = ${op.qx} (QTY X)\n`;
+                    g += `#511 = ${op.qy} (QTY Y)\n`;
+                    g += `#512 = ${op.sx} (SPACE X)\n`;
+                    g += `#513 = ${op.sy} (SPACE Y)\n`;
+                    g += `#514 = ${op.z} (DEPTH)\n`;
+                    g += `#100 = 0 (Y COUNTER)\n\n`;
+                    g += `WHILE [#100 LT #511] DO 1\n`;
+                    g += `  #101 = 0 (X COUNTER)\n`;
+                    g += `  WHILE [#101 LT #510] DO 2\n`;
+                    g += `    G81 G99 X[#101 * #512] Y[#100 * #513] Z-#514 R${op.retract} F${op.feed}\n`;
+                    g += `    #101 = #101 + 1\n`;
+                    g += `  END 2\n`;
+                    g += `  #100 = #100 + 1\n`;
+                    g += `END 1\nG80\n`;
                 } else if(op.type === 'pocket') {
-                    g += `#1=[${op.dia}/2]\n#4=0\nWHILE [#4 GT -${op.z}] DO 1\n #4=[#4-${op.doc}]\n IF [#4 LT -${op.z}] THEN #4=-${op.z}\n G1 Z#4 F${op.feed}\n G2 I#1 F${op.feed}\nEND 1\n`;
+                    g += `(VARIABLES)\n`;
+                    g += `#520 = [${op.dia}/2] (RADIUS)\n`;
+                    g += `#521 = ${op.z} (TOTAL DEPTH)\n`;
+                    g += `#522 = ${op.doc} (DOC)\n`;
+                    g += `#523 = 0 (CURRENT Z)\n\n`;
+                    g += `WHILE [#523 GT -#521] DO 1\n`;
+                    g += `  #523 = [#523 - #522]\n`;
+                    g += `  IF [#523 LT -#521] THEN #523 = -#521\n`;
+                    g += `  G1 Z#523 F${op.feed}\n`;
+                    g += `  G2 I#520 F${op.feed}\n`;
+                    g += `END 1\n`;
                 }
 
                 g += `G0 Z${op.zSafe} M9\n`;
@@ -155,13 +184,9 @@
             if(!text) return alert("Generate code first!");
             const blob = new Blob([text], { type: 'text/plain' });
             const anchor = document.createElement('a');
-            anchor.download = "PROGRAM.NC";
+            anchor.download = "MACRO_PROG.NC";
             anchor.href = window.URL.createObjectURL(blob);
             anchor.click();
-        }
-
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js');
         }
     </script>
 </body>
