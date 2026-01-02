@@ -3,151 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CNC Macro B G20 Gen</title>
+    <title>CNC Macro B Builder</title>
     <link rel="manifest" href="manifest.json">
     <style>
-        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #1a1a1a; color: #eee; line-height: 1.4; }
-        .block { background: #2d2d2d; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #007bff; }
-        h2, h3 { margin-top: 0; color: #007bff; text-transform: uppercase; letter-spacing: 1px; }
+        body { font-family: 'Segoe UI', sans-serif; padding: 20px; background: #121212; color: #e0e0e0; }
+        .block { background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid #28a745; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        h2, h3 { margin-top: 0; color: #28a745; text-transform: uppercase; }
         .grid-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        input, select { background: #444; color: #fff; border: 1px solid #555; padding: 8px; margin: 5px 0; border-radius: 4px; width: 90%; }
-        label { display: block; font-size: 0.8em; color: #aaa; margin-top: 5px; }
-        textarea { width: 100%; height: 300px; font-family: 'Courier New', monospace; background: #000; color: #00ff00; padding: 10px; border-radius: 5px; margin-top: 10px; border: 1px solid #333; }
-        button { background: #28a745; color: white; padding: 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; font-size: 1rem; }
-        button:hover { background: #218838; }
-        .section-title { background: #3d3d3d; padding: 5px 10px; border-radius: 4px; margin-bottom: 10px; font-weight: bold; }
+        input, select { background: #333; color: #fff; border: 1px solid #444; padding: 10px; margin: 5px 0; border-radius: 4px; width: 90%; font-size: 1rem; }
+        label { display: block; font-size: 0.75rem; color: #888; margin-top: 5px; }
+        textarea { width: 100%; height: 250px; font-family: 'Courier New', monospace; background: #000; color: #00ff00; padding: 10px; border-radius: 5px; margin-top: 10px; border: 1px solid #333; }
+        .btn-add { background: #007bff; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn-generate { background: #28a745; color: white; padding: 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 20px; font-size: 1.1rem; }
+        .btn-download { background: #dc3545; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; width: 100%; }
+        .op-list { background: #252525; padding: 10px; border-radius: 5px; margin-top: 10px; border: 1px dashed #555; }
     </style>
 </head>
 <body>
 
-    <h2>Fanuc Macro B (G20)</h2>
+    <h2>Macro B Master Builder (G20)</h2>
     
     <div class="block">
-        <h3>1. Global Tool Data</h3>
+        <h3>1. Tooling & Globals</h3>
         <div class="grid-inputs">
             <div><label>Tool # (T)</label><input type="number" id="tool" value="1"></div>
             <div><label>Spindle (S)</label><input type="number" id="speed" value="2500"></div>
             <div><label>Feedrate (F)</label><input type="number" id="feed" value="12.0"></div>
-            <div><label>Coolant</label><select id="coolant"><option value="M8">M8 ON</option><option value="M9">M9 OFF</option></select></div>
-            <div><label>Z Safe (Clear)</label><input type="number" id="zSafe" value="1.0"></div>
+            <div><label>Z-Safe</label><input type="number" id="zSafe" value="1.0"></div>
             <div><label>Retract (R)</label><input type="number" id="retract" value="0.1"></div>
+            <div><label>Coolant</label><select id="coolant"><option value="M8">M8 ON</option><option value="M9">M9 OFF</option></select></div>
         </div>
     </div>
 
     <div class="block">
-        <h3>2. Hole Grid (X & Y)</h3>
-        <div class="grid-inputs">
-            <div><label>Start X</label><input type="number" id="linX" value="0"></div>
-            <div><label>Start Y</label><input type="number" id="linY" value="0"></div>
-            <div><label>X Qty</label><input type="number" id="qtyX" value="5"></div>
-            <div><label>Y Qty</label><input type="number" id="qtyY" value="5"></div>
-            <div><label>X Spacing</label><input type="number" id="spaceX" value="1.0"></div>
-            <div><label>Y Spacing</label><input type="number" id="spaceY" value="1.0"></div>
-            <div><label>Total Depth (Z)</label><input type="number" id="linDepth" value="0.5"></div>
-        </div>
-        <button onclick="generate('grid')">Generate Grid G-Code</button>
-    </div>
+        <h3>2. Add Operation</h3>
+        <select id="opType" onchange="toggleInputs()">
+            <option value="facing">Facing Operation</option>
+            <option value="grid">Hole Grid (X/Y)</option>
+            <option value="pocket">Circle Pocket</option>
+        </select>
 
-    <div class="block">
-        <h3>3. Circle Pocket / Mill</h3>
-        <div class="grid-inputs">
-            <div><label>Finish Dia</label><input type="number" id="pockDia" value="2.0"></div>
-            <div><label>Total Depth</label><input type="number" id="pockZ" value="0.75"></div>
-            <div><label>Depth/Pass (DOC)</label><input type="number" id="pockDOC" value="0.1"></div>
-            <div><label>Radial Step (WOC)</label><input type="number" id="pockRadial" value="0.05"></div>
-        </div>
-        <button onclick="generate('pocket')">Generate Pocket</button>
-    </div>
-
-    <div class="block">
-        <h3>4. Face Program</h3>
-        <div class="grid-inputs">
+        <div id="facingInputs" class="grid-inputs">
             <div><label>Length (X)</label><input type="number" id="faceX" value="5.0"></div>
             <div><label>Width (Y)</label><input type="number" id="faceY" value="3.0"></div>
             <div><label>Stepover</label><input type="number" id="faceStep" value="1.5"></div>
         </div>
-        <button onclick="generate('facing')">Generate Face</button>
+
+        <div id="gridInputs" class="grid-inputs" style="display:none;">
+            <div><label>X Qty</label><input type="number" id="qtyX" value="5"></div>
+            <div><label>Y Qty</label><input type="number" id="qtyY" value="5"></div>
+            <div><label>X Space</label><input type="number" id="spaceX" value="1.0"></div>
+            <div><label>Y Space</label><input type="number" id="spaceY" value="1.0"></div>
+            <div><label>Z Depth</label><input type="number" id="linDepth" value="0.5"></div>
+        </div>
+
+        <div id="pocketInputs" class="grid-inputs" style="display:none;">
+            <div><label>Finish Dia</label><input type="number" id="pockDia" value="2.0"></div>
+            <div><label>Total Z</label><input type="number" id="pockZ" value="0.5"></div>
+            <div><label>DOC</label><input type="number" id="pockDOC" value="0.1"></div>
+        </div>
+
+        <button class="btn-add" onclick="addOperation()">+ Add to Program Queue</button>
     </div>
 
-    <textarea id="output" readonly placeholder="Macro B G-Code Output..."></textarea>
+    <div class="op-list" id="opList">
+        <strong>Queue:</strong> (Empty)
+    </div>
+
+    <button class="btn-generate" onclick="buildFullProgram()">Generate Full Program</button>
+    
+    <textarea id="output" readonly></textarea>
+    
+    <button class="btn-download" onclick="downloadNC()">Download .NC File</button>
+    <button style="background:#666; color:white; border:none; padding:10px; width:100%; margin-top:5px; border-radius:5px;" onclick="location.reload()">Clear All</button>
 
     <script>
-        function generate(mode) {
-            // Get Shared Globals
-            const T = document.getElementById('tool').value;
-            const S = document.getElementById('speed').value;
-            const F = document.getElementById('feed').value;
-            const ZS = document.getElementById('zSafe').value;
-            const R = document.getElementById('retract').value;
-            const M = document.getElementById('coolant').value;
+        let programQueue = [];
 
-            let g = `%\nO1001 (${mode.toUpperCase()})\n(G20 INCH SYSTEM)\n`;
-            g += `G20 G90 G17 G40\n`;
-            g += `T${T} M6\n`;
-            g += `S${S} M3\n`;
-            g += `G54 G0 X0 Y0\n`;
-            g += `G43 H${T} Z${ZS} ${M}\n\n`;
+        function toggleInputs() {
+            const type = document.getElementById('opType').value;
+            document.getElementById('facingInputs').style.display = type === 'facing' ? 'grid' : 'none';
+            document.getElementById('gridInputs').style.display = type === 'grid' ? 'grid' : 'none';
+            document.getElementById('pocketInputs').style.display = type === 'pocket' ? 'grid' : 'none';
+        }
 
-            if (mode === 'grid') {
-                let qX = document.getElementById('qtyX').value;
-                let qY = document.getElementById('qtyY').value;
-                let sX = document.getElementById('spaceX').value;
-                let sY = document.getElementById('spaceY').value;
-                let z = document.getElementById('linDepth').value;
-                let stX = document.getElementById('linX').value;
-                let stY = document.getElementById('linY').value;
+        function addOperation() {
+            const type = document.getElementById('opType').value;
+            const opData = {
+                type: type,
+                tool: document.getElementById('tool').value,
+                speed: document.getElementById('speed').value,
+                feed: document.getElementById('feed').value,
+                zSafe: document.getElementById('zSafe').value,
+                retract: document.getElementById('retract').value,
+                coolant: document.getElementById('coolant').value
+            };
 
-                g += `(GRID HOLE PATTERN: ${qX}X BY ${qY}Y)\n`;
-                g += `#100 = ${stX} (START X)\n`;
-                g += `#101 = ${stY} (START Y)\n`;
-                g += `#102 = 0 (Y COUNTER)\n\n`;
-                g += `WHILE [#102 LT ${qY}] DO 1\n`;
-                g += `  #103 = 0 (X COUNTER)\n`;
-                g += `  WHILE [#103 LT ${qX}] DO 2\n`;
-                g += `    G81 G99 X[#100+[#103*${sX}]] Y[#101+[#102*${sY}]] Z-${z} R${R} F${F}\n`;
-                g += `    #103 = #103 + 1\n`;
-                g += `  END 2\n`;
-                g += `  #102 = #102 + 1\n`;
-                g += `END 1\nG80\n`;
-
-            } else if (mode === 'pocket') {
-                let dia = document.getElementById('pockDia').value;
-                let zFin = document.getElementById('pockZ').value;
-                let doc = document.getElementById('pockDOC').value;
-                
-                g += `(CIRCLE MILL POCKET)\n`;
-                g += `#1 = [${dia}/2] (RADIUS)\n`;
-                g += `#2 = ${doc} (DOC)\n`;
-                g += `#3 = ${zFin} (TOTAL DEPTH)\n`;
-                g += `#4 = 0 (CURRENT Z)\n\n`;
-                g += `WHILE [#4 GT -#3] DO 1\n`;
-                g += `  #4 = [#4 - #2]\n`;
-                g += `  IF [#4 LT -#3] THEN #4 = -#3\n`;
-                g += `  G1 Z#4 F${F}\n`;
-                g += `  G2 I#1 F${F}\n`;
-                g += `END 1\n`;
-
-            } else if (mode === 'facing') {
-                let len = document.getElementById('faceX').value;
-                let wid = document.getElementById('faceY').value;
-                let step = document.getElementById('faceStep').value;
-                
-                g += `(FACE MILLING)\n`;
-                g += `#1 = 0 (CURRENT Y)\n`;
-                g += `WHILE [#1 LE ${wid}] DO 1\n`;
-                g += `  G0 X-1.0 Y#1\n`;
-                g += `  G1 X[${len} + 1.0] F${F}\n`;
-                g += `  #1 = #1 + ${step}\n`;
-                g += `END 1\n`;
+            if(type === 'facing') {
+                opData.x = document.getElementById('faceX').value;
+                opData.y = document.getElementById('faceY').value;
+                opData.step = document.getElementById('faceStep').value;
+            } else if(type === 'grid') {
+                opData.qx = document.getElementById('qtyX').value;
+                opData.qy = document.getElementById('qtyY').value;
+                opData.sx = document.getElementById('spaceX').value;
+                opData.sy = document.getElementById('spaceY').value;
+                opData.z = document.getElementById('linDepth').value;
+            } else if(type === 'pocket') {
+                opData.dia = document.getElementById('pockDia').value;
+                opData.z = document.getElementById('pockZ').value;
+                opData.doc = document.getElementById('pockDOC').value;
             }
 
-            // Fixed Footer
-            g += `\nG0 Z${ZS} ${M === 'M8' ? 'M9' : ''}\n`;
-            g += `M5\n`;
-            g += `G0 G90 G58 X0 Y0\n`;
-            g += `M30\n%`;
+            programQueue.push(opData);
+            updateList();
+        }
 
+        function updateList() {
+            const list = document.getElementById('opList');
+            list.innerHTML = "<strong>Queue:</strong> " + programQueue.map((op, i) => `<br>${i+1}. T${op.tool} ${op.type}`).join('');
+        }
+
+        function buildFullProgram() {
+            let g = `%\nO1001 (MASTER BUILDER)\nG20 G90 G17 G40\n\n`;
+
+            programQueue.forEach((op, index) => {
+                g += `(OP ${index + 1}: ${op.type.toUpperCase()})\n`;
+                g += `T${op.tool} M6\n`;
+                g += `S${op.speed} M3\n`;
+                g += `G54 G0 X0 Y0\n`;
+                g += `G43 H${op.tool} Z${op.zSafe} ${op.coolant}\n`;
+
+                if(op.type === 'facing') {
+                    g += `#1 = 0\nWHILE [#1 LE ${op.y}] DO 1\n G0 X-1.0 Y#1\n G1 X[${op.x}+1.0] F${op.feed}\n #1=[#1+${op.step}]\nEND 1\n`;
+                } else if(op.type === 'grid') {
+                    g += `#100=0 (Y COUNTER)\nWHILE [#100 LT ${op.qy}] DO 1\n #101=0 (X COUNTER)\n WHILE [#101 LT ${op.qx}] DO 2\n  G81 G99 X[#101*${op.sx}] Y[#100*${op.sy}] Z-${op.z} R${op.retract} F${op.feed}\n  #101=#101+1\n END 2\n #100=#100+1\nEND 1\nG80\n`;
+                } else if(op.type === 'pocket') {
+                    g += `#1=[${op.dia}/2]\n#4=0\nWHILE [#4 GT -${op.z}] DO 1\n #4=[#4-${op.doc}]\n IF [#4 LT -${op.z}] THEN #4=-${op.z}\n G1 Z#4 F${op.feed}\n G2 I#1 F${op.feed}\nEND 1\n`;
+                }
+
+                g += `G0 Z${op.zSafe} M9\n`;
+                g += `M5\n\n`;
+            });
+
+            g += `G0 G90 G58 X0 Y0\nM30\n%`;
             document.getElementById('output').value = g;
+        }
+
+        function downloadNC() {
+            const text = document.getElementById('output').value;
+            if(!text) return alert("Generate code first!");
+            const blob = new Blob([text], { type: 'text/plain' });
+            const anchor = document.createElement('a');
+            anchor.download = "PROGRAM.NC";
+            anchor.href = window.URL.createObjectURL(blob);
+            anchor.click();
         }
 
         if ('serviceWorker' in navigator) {
